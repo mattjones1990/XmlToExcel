@@ -40,15 +40,8 @@ namespace XMLtoEXCEL
                 }
             }
 
-            //Remove excess characters
-            string stringOutput = RemoveClutter(output);
-                
-                
-            //    output.Replace("<![CDATA[Failed 1 times.", "");
-            //string output3 = output2.Replace("<![", "");
-            //string output4 = output3.Replace(").]]>", "");
-
-            return stringOutput;
+            //Remove excess characters    
+            return RemoveClutter(output);
         }
 
         private static string RemoveClutter(string s)

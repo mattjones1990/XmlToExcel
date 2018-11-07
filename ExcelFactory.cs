@@ -43,7 +43,8 @@ namespace XMLtoEXCEL
         }
         public static void SaveSpreadsheet(string directory, ExcelPackage excel)
         {
-            FileInfo excelFile = new FileInfo(directory + "/test.xlsx");
+            var date = DateTime.Now;
+            FileInfo excelFile = new FileInfo(directory + "/" + date.Hour + date.Minute + "_" + date.Day +  "_" + date.Month + "_" + date.Year + "_PostmanTestOutput.xlsx");
             excel.SaveAs(excelFile);
         }
     }
