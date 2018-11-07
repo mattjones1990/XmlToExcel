@@ -49,68 +49,80 @@ namespace XMLtoEXCEL
             int totalTestsConsole = 0;
             string testSuitesName = testsuitesList[0].Attributes.GetNamedItem("name").InnerText;
 
-
             using (ExcelPackage excel = new ExcelPackage())
             {
-                //First worksheet creation
+                //Create Worksheets
                 var excelWorksheet1 = ExcelFactory.CreateWorksheet("High Level Report", excel);
-
-                List<string[]> headerRow1 = new List<string[]>()
-                {
-                    new string[] { "Testsuites Name", "Scenario Definition", "Tests", "Test Status", "Failed Test Description" }
-                };
-
-                string headerRange1 = "A1:" + Char.ConvertFromUtf32(headerRow1[0].Length + 64) + "1";
-                excelWorksheet1.Cells[headerRange1].LoadFromArrays(headerRow1);
-                excelWorksheet1.Cells[headerRange1].Style.Font.Bold = true;
-
-                //Second worksheet creation
                 var excelWorksheet2 = ExcelFactory.CreateWorksheet("Development View Report", excel);
 
-                List<string[]> headerRow2 = new List<string[]>()
-                {
-                    new string[] { "Testsuites Name", "Scenario Definition", "Failed Test Decription", "Errors", "Failures",
-                        "Error Messages", "testScriptError", "Stack Track Message", "View Report" }
-                };
+                //Add headers
+                ExcelFactory.GenerateHeaders(excelWorksheet1, excelWorksheet2);
 
-                string headerRange2 = "A1:" + Char.ConvertFromUtf32(headerRow2[0].Length + 64) + "1";
-                excelWorksheet2.Cells[headerRange2].LoadFromArrays(headerRow2);
-                excelWorksheet2.Cells[headerRange2].Style.Font.Bold = true;
-
-                int testSuiteRow = 2;
-                int scenarioDefinitionRow = 2;
-                int testNumberDefinition = 2;
-                int testStatus = 2;
-                int errorStatus = 2;
+                int worksheet1Row = 2;
+                int worksheet2Row = 2;
+                int worksheet2TestRow = 2;
 
                 foreach (XmlNode node in testsuiteList)
                 {
+                    int addInitialRowOfData = 0;
+                    //First Worksheet - High Level
+                    #region
                     //Console stats 
                     totalTests = totalTests + XmlFactory.GetStatsForConsole(node, "tests");
                     totalFailures = totalFailures + XmlFactory.GetStatsForConsole(node, "failures");
 
                     //Add testsuite name
-                    excelWorksheet1.Cells["A" + testSuiteRow.ToString()].Value = testSuitesName;
-                    testSuiteRow++;
+                    excelWorksheet1.Cells["A" + worksheet1Row.ToString()].Value = testSuitesName;
 
                     //Add scenario definition
-                    excelWorksheet1.Cells["B" + scenarioDefinitionRow.ToString()].Value = XmlFactory.GetInnerText(node, "name");
-                    scenarioDefinitionRow++;
+                    excelWorksheet1.Cells["B" + worksheet1Row.ToString()].Value = XmlFactory.GetInnerText(node, "name");
 
                     //Add test numbers
                     totalTests = XmlFactory.GetInnerTextInt(node, "tests");
                     totalTestsConsole = totalTestsConsole + totalTests;
-                    excelWorksheet1.Cells["C" + testNumberDefinition.ToString()].Value = totalTests;
-                    testNumberDefinition++;
+                    excelWorksheet1.Cells["C" + worksheet1Row.ToString()].Value = totalTests;
 
                     //Add test status
-                    excelWorksheet1.Cells["D" + testStatus.ToString()].Value = XmlFactory.PassOrFailCheck(node, "failures");
-                    testStatus++;
+                    excelWorksheet1.Cells["D" + worksheet1Row.ToString()].Value = XmlFactory.PassOrFailCheck(node, "failures");
 
                     //Add failed test descriptions
                     List<string> errorTests = XmlFactory.GetErroredTests(node);
-                    excelWorksheet1.Cells["E" + errorStatus.ToString()].Value = StringManipulation.GetListOfErroredTests(errorTests);
-                    errorStatus++;
+                    excelWorksheet1.Cells["E" + worksheet1Row.ToString()].Value = StringManipulation.GetListOfErroredTests(errorTests);
+
+                    worksheet1Row++;
+                    #endregion
+
+                    //Second Worksheet
+                    #region
+
+                    XmlNodeList testCaseList = node.SelectNodes("testcase"); //working
+                   
+                    foreach (XmlNode item in testCaseList)
+                    {
+                        XmlNodeList failedTestCases = item.SelectNodes("failure");
+                        bool failCount = failedTestCases.Count > 0;
+
+                        if (failCount && addInitialRowOfData == 0)
+                        {
+                            //Add testsuite name
+                            excelWorksheet2.Cells["A" + worksheet2Row.ToString()].Value = testSuitesName;
+
+                            //Add scenario definition
+                            excelWorksheet2.Cells["B" + worksheet2Row.ToString()].Value = XmlFactory.GetInnerText(node, "name");
+                            addInitialRowOfData++;
+                        }
+
+                        if (failCount)
+                        {
+                            //Add test names and associated errors/stacktraces
+                            excelWorksheet2.Cells["C" + worksheet2Row.ToString()].Value = XmlFactory.GetInnerText(item, "name");
+                            excelWorksheet2.Cells["D" + worksheet2Row.ToString()].Value = StringManipulation.SortErrors(failedTestCases[0].InnerXml, "Error message");
+                            excelWorksheet2.Cells["E" + worksheet2Row.ToString()].Value = StringManipulation.SortErrors(failedTestCases[0].InnerXml, "Stacktrace");
+
+                            worksheet2Row++;
+                        }
+                    }
+                    #endregion
                 }
 
                 //Save Excel file
@@ -120,7 +132,5 @@ namespace XMLtoEXCEL
             WritingTextOutput.TestStats(totalTestsConsole, totalFailures);
             Console.ReadLine();
         }
-
-
     }
 }
